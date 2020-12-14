@@ -104,8 +104,6 @@ def get_tests():
     Generates and returns a list of all the names of tests to run through the textual interface
     :return: The aforementioned list.
     """
-    # tests = ['test_build_gaussian_pyramid_random', 'test_build_gaussian_pyramid_static', 'test_build_laplacian_pyramid_random', 'test_build_laplacian_pyramid_static', 'test_laplacian_to_image', 'test_render_pyramid_random', 'test_render_pyramid_static']
-    # return [tester.TestEx4(method) for method in tests]
     return [tester.TestEx4(method) for method in dir(tester.TestEx4) if method.startswith('test')]
 
 

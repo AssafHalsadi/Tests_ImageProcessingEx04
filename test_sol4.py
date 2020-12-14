@@ -201,17 +201,13 @@ class TestEx4(unittest.TestCase):
         self.assertEqual(expected_im.shape, sol_image.shape,
                          msg=f"The '{tested_func_name}' function on the {tested_im_name} image should be similar to the built in output, so the output's shape should be equal to the shape of the built in shape")
         r = pearsonr(expected_im.flatten(), sol_image.flatten())[0]
-        # print(f"for {tested_im_name}, the pearsonr was {co}")
-        #
-        # print(f"for {tested_im_name}, mse was : {self.mse(im1, im2)}")
-        #
-        # print(f"\n================\n")
+
         self.assertTrue(r > pearson_thresh and _mse(expected_im, sol_image) < mse_thresh,
                         msg=f"The {tested_im_name} image from {tested_func_name}'s output is not so similar to the built in implementation... maybe you should used plt.imshow on the new image and see what it looks like")
 
-    # ================================ Part III Tests ================================
+    # ================================ Part 3.1 Tests ================================
 
-    # -------------------------------- helpers
+    # -------------------------------- helpers --------------------------------
 
     def _get_random_coords(self, start, end, pad_start, pad_end):
         x_start, y_start = np.random.randint(start, end, 2)
@@ -255,26 +251,21 @@ class TestEx4(unittest.TestCase):
         self.assertEqual((4, 2), np.array(res).shape,
                          msg=f"harris should return an array of shape (4, 2) on a single rhombus")
 
-        # Code to display images for debugging
-        # plt.imshow(rhombus, cmap='gray')
-        # plt.scatter(res[:, 0], res[:, 1], c='red')
-        # plt.show()
-
         # Checks the corners or something close to it (by a margin of 1 for each axis) is in the result
         res = {tuple(p) for p in res}
         expected = set(corners)
         for c in expected:
             self.assertTrue(
                 c in res or (c[0] - 1, c[1]) in res or (c[0], c[1] - 1) in res or (c[0] - 1, c[1] - 1) in res or (
-                c[0] + 1, c[1]) in res or (c[0], c[1] + 1) in res or (c[0] + 1, c[1] + 1) in res,
+                    c[0] + 1, c[1]) in res or (c[0], c[1] + 1) in res or (c[0] + 1, c[1] + 1) in res,
                 msg=f"The expected corner {c} or any similar corner was not found by harris on rhombus")
 
     def _harris_square_module(self, bounds, bounds2=None, negative=False):
 
         # Draws a rectangle/2 rectangles according to the given bounds
         if not negative:
-            mat = np.ones((1024, 1024)) * 255
             x_start, x_end, y_start, y_end = bounds
+            mat = np.ones((1024, 1024)) * 255
             mat[x_start: x_end, y_start: y_end] = np.zeros((x_end - x_start, y_end - y_start))
             if bounds2 is not None:
                 x_start2, x_end2, y_start2, y_end2 = bounds2
@@ -298,11 +289,6 @@ class TestEx4(unittest.TestCase):
         # Checks output's type
         self.assertTrue(np.issubdtype(np.array(res).dtype, np.integer), msg=f"harris's output should be arrays of ints")
 
-        # # Code to display images for debugging
-        # plt.imshow(mat, cmap='gray')
-        # plt.scatter(res[:, 0], res[:, 1], c='red')
-        # plt.show()
-
         # Check all corners were found
         res = {tuple(p) for p in res}
         expected = {(y_start, x_start), (y_end - 1, x_start), (y_start, x_end - 1), (y_end - 1, x_end - 1)}
@@ -312,16 +298,6 @@ class TestEx4(unittest.TestCase):
 
         self.assertTrue(expected.issubset(res),
                         msg=f"Failed on the square test on bounds : {bounds}. The corners : {set(expected).difference(res)} were not in the found corners")
-
-    # def _get_rhombus(self, size):
-    #     rhombus = []
-    #     for i in range(size):
-    #         rhombus.append(np.zeros(i+1))
-    #     for i in range(size - 1, 0, -1):
-    #         rhombus.append(np.zeros(i))
-    #     return np.array(rhombus)
-    #
-    # def test_harris_static(self):
 
     def test_harris_basic(self):
 
@@ -338,7 +314,8 @@ class TestEx4(unittest.TestCase):
 
         # test for 2 random rectangles
         for i in range(20):
-            self._harris_square_module(self._get_random_coords(1, 492, 7, 20), self._get_random_coords(513, 1000, 7, 20))
+            self._harris_square_module(self._get_random_coords(1, 492, 7, 20),
+                                       self._get_random_coords(513, 1000, 7, 20))
 
         # test for 1 semi-random rhombus
         for i in range(20):
@@ -347,6 +324,69 @@ class TestEx4(unittest.TestCase):
         # test for 1 semi-random negative rhombus
         for i in range(20):
             self._harris_rhombus_module(self._get_rhombus_corners(), negative=True)
+
+    # -------------------------------- sample_decriptor test --------------------------------
+
+    def _test_sample_module(self, im, pos, rad, expected):
+
+        # Get result
+        res = np.array(sol.sample_descriptor(np.array(im), np.array(pos), rad))
+
+        # Checks output's shape and dtype
+        K = rad * 2 + 1
+        N = len(pos)
+        self.assertEqual(f"({N}, {K}, {K})", str(res.shape),
+                         msg=f"Shape of 'sample_decriptor' output should be (N,K,K)")
+        self.assertEqual(np.dtype('float64'), res.dtype, msg=f"The presubmit expects the output to be float64")
+
+        # Compares output to my output
+        self.assertIsNone(np.testing.assert_array_almost_equal(expected, res, decimal=5,
+                                                               err_msg=f"Descriptor is different from mine, maybe there is a problem?"))
+
+    def test_sample_decriptor_basic_COMPARE_TO_MY_OUTPUT(self):
+
+        # Check structure
+        self._structure_tester(sol.sample_descriptor, r'(im, pos, desc_rad)', False, False)
+
+        # Compares sample_descriptor output to my output on 10 rectangles
+        for i in range(1, 11):
+            mat = np.load(os.path.abspath(f'test_data/testing_arrays/rectangles/mat{i}.npy'))
+            pos = np.load(os.path.abspath(f'test_data/testing_arrays/rectangles/pos{i}.npy'))
+            expected = np.load(os.path.abspath(f'test_data/testing_arrays/rectangles/res{i}.npy'))
+            self._test_sample_module(mat, pos, 3, expected)
+
+        # Compares sample_descriptor output to my output on 10 diamonds
+        for i in range(1, 6):
+            mat = np.load(os.path.abspath(f'test_data/testing_arrays/rhombus/mat{i}.npy'))
+            pos = np.load(os.path.abspath(f'test_data/testing_arrays/rhombus/pos{i}.npy'))
+            expected = np.load(os.path.abspath(f'test_data/testing_arrays/rhombus/res{i}.npy'))
+            self._test_sample_module(mat, pos, 3, expected)
+
+        # Compares sample_descriptor output to my output on 3 images: Basic chess board and the two oxford images
+        names = ["chess", "oxford1", "oxford2"]
+        for name in names:
+            mat = np.load(os.path.abspath(f'test_data/testing_arrays/images/{name}.npy'))
+            pos = np.load(os.path.abspath(f'test_data/testing_arrays/images/{name}_pos1.npy'))
+            expected = np.load(os.path.abspath(f'test_data/testing_arrays/images/{name}_res1.npy'))
+            self._test_sample_module(mat, pos, 3, expected)
+
+    # -------------------------------- structure test for 'find_features' --------------------------------
+
+    def test_structure_find_features(self):
+
+        # Check structure
+        self._structure_tester(sol.find_features, r'(pyr)', False, False)
+
+        # Checks 'spread_out_corners' was used instead of 'harris_corner_detector'
+        find_features_text = inspect.getsource(sol.find_features)
+        self.assertTrue(r"spread_out_corners(" in find_features_text,
+                        msg=f"You should use 'spread_out_corners' and not use 'harris_corner_detector' in 'find_features' function")
+        self.assertTrue(r"harris_corner_detector(" not in find_features_text,
+                        msg=f"You should use 'spread_out_corners' and not use 'harris_corner_detector' in 'find_features' function")
+
+        # check return shape
+        res = sol.find_features([np.ones((1024, 1024)), np.ones((512, 512)), np.ones((256, 256)), np.ones((128, 128))])
+        self.assertEqual(2, len(res), msg=f"'find_features' function's output should be an array of length 2")
 
 
 if __name__ == '__main__':
